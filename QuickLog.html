@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QuickLog</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+  --blue:#1e88e5;
+  --bg:#f4f8fc;
+  --panel:#ffffff;
+  --text:#222;
+  --border:#cfd8dc;
+  --present:#c8e6c9;
+  --absent:#ffcdd2;
+  --excused:#fff9c4;
+  --late:#ffe0b2; 
+  --holiday:#e1f5fe;
+  --header-bg: #e9edf1;
+}
+/* Refined Dark Mode */
+body.dark{
+  --bg:#1e1e1e;
+  --panel:#2d2d2d;
+  --text:#e0e0e0;
+  --border:#444;
+  --header-bg: #383838;
+  --holiday: #01579b;
+}
+body.dark th { background: var(--header-bg); color: #fff; }
+body.dark .student { background: var(--panel); color: var(--text); }
+body.dark .totals-row td { background: #333 !important; color: #fff; }
+body.dark #excusedModal, body.dark #lateModal, body.dark #lrnModal { background: var(--panel); color: var(--text); }
+body.dark input, body.dark select { background: #3d3d3d; color: #fff; border: 1px solid #555; }
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Calibri,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-weight: 600; 
+  transition: background 0.3s, color 0.3s;
+}
+
+/* LOGO TITLE STYLING */
+.logo-container {
+  text-align: center;
+  margin-bottom: -100px;
+  margin-top: 50px;
+}
+.main-title {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--blue);
+  letter-spacing: -2px;
+  margin: 0;
+}
+.main-title span {
+  color: var(--text);
+}
+
+/* AUTH */
+#auth{
+  max-width:360px;
+  margin:120px auto;
+  background:var(--panel);
+  padding:25px;
+  border-radius:10px;
+  box-shadow:0 15px 30px rgba(0,0,0,.25);
+  text-align:center;
+}
+#auth input,#auth button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:6px;
+  border: 1px solid var(--border);
+}
+
+/* STICKY HEADER AND CONTROLS */
+#app { display:none; }
+
+.top-section {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+header{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 15px;
+  background: var(--blue);
+  color: white;
+}
+header input, header select, header button {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+}
+header button {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  cursor: pointer;
+}
+
+/* TOOLBAR */
+.container{ padding:15px; }
+
+#attendanceTools{
+  display:flex;
+  gap:8px;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+.tool{
+  flex: 1;
+  padding: 12px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  background:var(--panel);
+  color: var(--text);
+  min-width: 80px;
+}
+.tool.active{ outline: 3px solid var(--blue); }
+.present{background:var(--present) !important; color: #1b5e20 !important;}
+
+/* FIXED: Absent background color/text color logic */
+.absent{background: #ff5252 !important; color: white !important;}
+
+.excused{background:var(--excused) !important; color: #f57f17 !important;}
+.late{background:var(--late) !important; color: #e65100 !important;}
+.holiday{background:var(--holiday) !important; color: #0277bd !important; font-style: italic;}
+
+/* TABLE STYLING */
+.table-wrapper {
+  overflow-x: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+table{
+  border-collapse:collapse;
+  width:100%;
+}
+th,td{
+  border:1px solid var(--border);
+  padding:12px;
+  min-width:100px;
+  text-align:center;
+  user-select:none;
+}
+th{
+  background: var(--header-bg); 
+  color: #333;
+  position: sticky;
+  top: 0; 
+  z-index: 10;
+}
+.student{
+  text-align:left; 
+  font-weight:bold; 
+  background: #f9f9f9; 
+  position: sticky; 
+  left: 0;
+  z-index: 5;
+  cursor: pointer;
+}
+.lrn-text {
+  display: block;
+  font-size: 0.7rem;
+  color: #757575;
+  font-weight: normal;
+  margin-top: 2px;
+}
+
+/* PROFILE SECTION */
+#profileCard {
+  margin-top: 40px;
+  padding: 20px;
+  background: var(--panel);
+  border-top: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+#profilePicContainer {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #ddd;
+  border: 3px solid var(--blue);
+  cursor: pointer;
+  position: relative;
+}
+#profilePicContainer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#profileInfo h3 { margin: 0; color: var(--blue); }
+
+/* MODAL */
+#excusedModal, #lateModal, #lrnModal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  display: none;
+  z-index: 1000;
+  color: #333;
+  width: 320px;
+}
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; z-index: 999;
+}
+
+.holiday-input-bar {
+  background: #fff3e0;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #ffe0b2;
+}
+body.dark .holiday-input-bar {
+  background: #433629;
+  border-color: #5d4037;
+}
+
+/* PRINT FIXES */
+@media print {
+  .logo-container, #profileCard { display: none; }
+  header, #attendanceTools, .controls-row, button, input, select, .overlay, #excusedModal, #lateModal, #lrnModal, .holiday-input-bar {
+    display: none !important;
+  }
+  .top-section { position: relative; }
+  body { background: white !important; color: black !important; }
+  .container { padding: 0; }
+  .table-wrapper { overflow: visible !important; }
+  table { 
+    width: 100% !important; 
+    table-layout: auto !important;
+    font-size: 10pt;
+  }
+  th, td { padding: 4px; border: 1px solid #000; }
+  .student { position: static; background: transparent; }
+  th { position: static; background: #eee !important; color: black; }
+  @page { margin: 1cm; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="logo-container" id="logoHeader">
+  <h1 class="main-title">Quick<span>Log</span></h1>
+</div>
+
+<div id="auth">
+  <h2>Attendance Login</h2>
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')login()">
+  <button onclick="login()">Login</button>
+  <button onclick="register()">Register</button>
+</div>
+
+<div id="app">
+  <div class="top-section">
+    <header id="headerBar">
+      <input id="searchInput" placeholder="🔍 Search student..." oninput="render()">
+      <input type="date" id="dateStart">
+      <select id="range">
+        <option value="7">1 Week</option>
+        <option value="30">1 Month</option>
+        <option value="365">1 Year</option>
+      </select>
+      <button onclick="generateDates()">Generate Dates</button>
+      <button onclick="exportCSV()">Export CSV</button>
+      <button onclick="window.print()">Print Report</button>
+      <button onclick="toggleDark()">🌓 Theme</button>
+      <button onclick="logout()" style="background: #ff5252;">Logout</button>
+    </header>
+
+    <div class="container">
+      <div class="holiday-input-bar">
+          <span style="font-size: 0.9rem;">Mark Holiday:</span>
+          <input type="date" id="holidayDate" style="padding: 5px;">
+          <input type="text" id="holidayNameInput" placeholder="Holiday Name" style="padding: 5px; flex: 1;">
+          <button onclick="addHoliday()" style="padding: 5px 10px; background: var(--blue); color: white; border: none; border-radius: 4px;">Apply</button>
+      </div>
+
+      <div class="controls-row" style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+        <select id="classSelect" onchange="loadClass()" style="flex: 1; padding: 10px;"></select>
+        <input id="newClass" placeholder="New Class Name" style="flex: 1; padding: 10px;">
+        <button onclick="addClass()">+ Class</button>
+        <button onclick="deleteClass()" style="color: red;">Delete</button>
+      </div>
+
+      <div class="controls-row" style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+        <input id="studentName" placeholder="Student Name (use commas for multiple)" style="flex: 2; padding: 10px;">
+        <button onclick="addStudent()" style="flex: 1;">+ Add Student</button>
+        <button onclick="deleteStudent()" style="flex: 1; color: red;">Delete Student</button>
+      </div>
+
+      <div id="attendanceTools">
+        <button class="tool present active" onclick="setMode('present',this)">Present (P)</button>
+        <button class="tool late" onclick="setMode('late',this)">Late (L)</button>
+        <button class="tool absent" onclick="setMode('absent',this)">Absent (A)</button>
+        <button class="tool excused" onclick="setMode('excused',this)">Excused (E)</button>
+        <button class="tool" onclick="setMode('',this)">Clear/Erase</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="table-wrapper">
+      <table id="table"></table>
+    </div>
+  </div>
+
+  <div id="profileCard">
+    <div id="profilePicContainer" onclick="document.getElementById('fileInput').click()">
+      <img id="profileDisplay" src="https://via.placeholder.com/80?text=+" alt="Profile">
+      <input type="file" id="fileInput" style="display:none" accept="image/*" onchange="updateProfilePic(this)">
+    </div>
+    <div id="profileInfo">
+      <p style="margin:0; font-size: 0.8rem; opacity: 0.7;">Logged in as:</p>
+      <h3 id="displayUserName">User Name</h3>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeModals()"></div>
+
+<div id="lrnModal">
+  <h3>Add/Edit LRN</h3>
+  <p id="lrnStudentLabel" style="font-weight: bold; margin-bottom: 10px;"></p>
+  <input id="lrnInput" placeholder="Enter LRN Number" style="width:100%; padding:10px;">
+  <button onclick="submitLRN()" style="background: var(--blue); color: white; border: none; padding: 10px; margin-top: 10px; width: 100%;">Save LRN</button>
+  <button onclick="closeModals()" style="background: #eee; border: none; padding: 10px; margin-top: 5px; width: 100%;">Cancel</button>
+</div>
+
+<div id="excusedModal">
+  <h3>Reason for Absence</h3>
+  <select id="excusedReasonDropdown" style="width:100%; padding:10px;" onchange="toggleExcusedOther()">
+    <option value="Accident">Accident</option>
+    <option value="Change of Residency">Change of Residency</option>
+    <option value="Difficulty of Transportation">Difficulty of Transportation</option>
+    <option value="Distance between school and house">Distance between school and house</option>
+    <option value="Family problem">Family problem</option>
+    <option value="Financial Problem">Financial Problem</option>
+    <option value="Health">Health</option>
+    <option value="Lack of Interest">Lack of Interest</option>
+    <option value="Loss of family member">Loss of family member</option>
+    <option value="Personal Problem / Issue">Personal Problem / Issue</option>
+    <option value="Pregnancy">Pregnancy</option>
+    <option value="Problem with Specific Teacher">Problem with Specific Teacher</option>
+    <option value="Teenage Parenthood">Teenage Parenthood</option>
+    <option value="Traffic">Traffic</option>
+    <option value="No Contact">No Contact</option>
+    <option value="Working Student">Working Student</option>
+    <option value="Others">Others</option>
+  </select>
+  <input id="excusedReasonInput" placeholder="Enter specific reason" style="width:100%; padding:10px; margin-top:10px; display:none;">
+  <button onclick="submitExcused()" style="background: var(--blue); color: white; border: none; padding: 10px; margin-top: 10px; width: 100%;">Save Reason</button>
+  <button onclick="closeModals()" style="background: #eee; border: none; padding: 10px; margin-top: 5px; width: 100%;">Cancel</button>
+</div>
+
+<div id="lateModal">
+  <h3>Reason for Lateness</h3>
+  <select id="lateReasonDropdown" style="width:100%; padding:10px;" onchange="toggleLateOther()">
+    <option value="Accident">Accident</option>
+    <option value="Change of Residency">Change of Residency</option>
+    <option value="Difficulty of Transportation">Difficulty of Transportation</option>
+    <option value="Distance between school and house">Distance between school and house</option>
+    <option value="Family problem">Family problem</option>
+    <option value="Financial Problem">Financial Problem</option>
+    <option value="Health">Health</option>
+    <option value="Lack of Interest">Lack of Interest</option>
+    <option value="Loss of family member">Loss of family member</option>
+    <option value="Personal Problem / Issue">Personal Problem / Issue</option>
+    <option value="Pregnancy">Pregnancy</option>
+    <option value="Problem with Specific Teacher">Problem with Specific Teacher</option>
+    <option value="Teenage Parenthood">Teenage Parenthood</option>
+    <option value="Traffic">Traffic</option>
+    <option value="No Contact">No Contact</option>
+    <option value="Working Student">Working Student</option>
+    <option value="Others">Others</option>
+  </select>
+  <input id="lateReasonInput" placeholder="Enter specific reason" style="width:100%; padding:10px; margin-top:10px; display:none;">
+  <button onclick="submitLate()" style="background: var(--blue); color: white; border: none; padding: 10px; margin-top: 10px; width: 100%;">Save Reason</button>
+  <button onclick="closeModals()" style="background: #eee; border: none; padding: 10px; margin-top: 5px; width: 100%;">Cancel</button>
+</div>
+
+<script>
+let currentUser, currentClass, attendanceMode = "present", pendingKey = null, pendingStudent = null;
+
+const DB = () => JSON.parse(localStorage.getItem("db") || "{}");
+const SAVE = d => localStorage.setItem("db", JSON.stringify(d));
+
+function register(){ let d=DB(); d.users=d.users||{}; d.users[user.value]={pass:pass.value,classes:{},pic:""}; SAVE(d); alert("Registered!"); }
+
+function login(u, p){ 
+  let d=DB(); 
+  let usr = u || user.value;
+  let pwd = p || pass.value;
+  
+  if(d.users?.[usr]?.pass === pwd){ 
+    currentUser=usr; 
+    localStorage.setItem("lastUser", usr);
+    localStorage.setItem("lastPass", pwd);
+    auth.style.display="none"; 
+    logoHeader.style.display="none"; 
+    app.style.display="block"; 
+    displayUserName.innerText = usr.toUpperCase();
+    if(d.users[usr].pic) profileDisplay.src = d.users[usr].pic;
+    loadClasses(); 
+  } else if(!u) {
+    alert("Invalid login");
+  }
+}
+
+function updateProfilePic(input) {
+  if (input.files && input.files[0]) {
+    let reader = new FileReader();
+    reader.onload = function(e) {
+      profileDisplay.src = e.target.result;
+      let d = DB();
+      d.users[currentUser].pic = e.target.result;
+      SAVE(d);
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function logout(){
+  localStorage.removeItem("lastUser");
+  localStorage.removeItem("lastPass");
+  localStorage.removeItem("lastClass");
+  location.reload();
+}
+
+function loadClasses(){
+  let d=DB(),s=classSelect; s.innerHTML="";
+  if(!d.users[currentUser]) return;
+  Object.keys(d.users[currentUser].classes).forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  
+  let lastC = localStorage.getItem("lastClass");
+  if(lastC && d.users[currentUser].classes[lastC]) {
+    s.value = lastC;
+  }
+  
+  if(s.value) loadClass();
+}
+
+function addClass(){ let d=DB(); d.users[currentUser].classes[newClass.value]={students:[],dates:[],att:{},lrns:{},holidays:{}}; SAVE(d); loadClasses(); }
+
+function deleteClass(){ if(!currentClass) return; let d=DB(); delete d.users[currentUser].classes[currentClass]; SAVE(d); loadClasses(); table.innerHTML=""; }
+
+function loadClass(){ 
+  currentClass=classSelect.value; 
+  localStorage.setItem("lastClass", currentClass);
+  render(); 
+}
+
+function addStudent(){ 
+  let input = studentName.value; 
+  if(!input) return;
+  
+  let d=DB(); 
+  let names = input.split(",").map(n => n.trim().toUpperCase()).filter(n => n !== "");
+  
+  if(names.length > 0) {
+    if(!d.users[currentUser].classes[currentClass].lrns) d.users[currentUser].classes[currentClass].lrns = {};
+    d.users[currentUser].classes[currentClass].students.push(...names);
+    d.users[currentUser].classes[currentClass].students.sort();
+    SAVE(d); 
+    render(); 
+    studentName.value = "";
+  }
+}
+
+function deleteStudent(){
+  if(!currentClass || !studentName.value) return;
+  let d=DB();
+  let students = d.users[currentUser].classes[currentClass].students;
+  let searchName = studentName.value.toUpperCase();
+  let index = students.findIndex(s => s.toUpperCase() === searchName);
+  
+  if(index > -1) {
+    let actualName = students[index];
+    if(confirm(`Are you sure you want to delete ${actualName}?`)) {
+      students.splice(index, 1);
+      let att = d.users[currentUser].classes[currentClass].att;
+      Object.keys(att).forEach(k => { if(k.startsWith(actualName + "|")) delete att[k]; });
+      if(d.users[currentUser].classes[currentClass].lrns) delete d.users[currentUser].classes[currentClass].lrns[actualName];
+      SAVE(d); 
+      render();
+    }
+  } else {
+    alert("Student not found.");
+  }
+}
+
+function generateDates(){
+  let d=DB(),c=d.users[currentUser].classes[currentClass];
+  c.dates=[]; let s=new Date(dateStart.value || new Date());
+  for(let i=0;i<range.value;i++){ let t=new Date(s); t.setDate(s.getDate()+i); c.dates.push(t.toISOString().split("T")[0]); }
+  SAVE(d); render();
+}
+
+function addHoliday() {
+    let d=DB(), c=d.users[currentUser].classes[currentClass];
+    let hDate = holidayDate.value;
+    let hName = holidayNameInput.value;
+    if(!hDate || !hName) return;
+    if(!c.holidays) c.holidays = {};
+    c.holidays[hDate] = hName;
+    SAVE(d); render();
+    holidayNameInput.value = "";
+}
+
+function setMode(m,btn){ attendanceMode=m; document.querySelectorAll(".tool").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); }
+
+function render(){
+  let d=DB(); if(!currentUser || !currentClass) return;
+  let c=d.users[currentUser].classes[currentClass];
+  if(!c.lrns) c.lrns = {};
+  if(!c.holidays) c.holidays = {};
+  let filter=searchInput.value.toLowerCase();
+  
+  let students = c.students
+    .filter(s=>s.toLowerCase().includes(filter))
+    .sort();
+  
+  let html="<tr><th class='student'>Student Name</th>";
+  c.dates.forEach(dt=>{
+      let h = c.holidays[dt];
+      html+=`<th>${dt}${h ? `<br><small style="color:red">(${h})</small>` : ''}</th>`;
+  });
+  html+="<th>Present (Week)</th><th>Present (Month)</th></tr>";
+
+  let dailyTotals = {};
+  c.dates.forEach(dt => dailyTotals[dt] = {present:0, late:0, absent:0, excused:0});
+
+  let currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+
+  students.forEach(s=>{
+    let pRange=0; 
+    let pMonth=0;
+    let lrn = c.lrns[s] || "No LRN set";
+    html+=`<tr><td class="student" onclick="openLRNModal('${s}')">${s}<span class="lrn-text">LRN: ${lrn}</span></td>`;
+    
+    // Calculate Monthly total from all keys
+    Object.keys(c.att).forEach(key => {
+        if(key.startsWith(s + "|") && key.includes(currentMonth) && c.att[key].status === "present") pMonth++;
+    });
+
+    c.dates.forEach(dt=>{
+      let k=s+"|"+dt, A=c.att[k]||{};
+      let isHoliday = c.holidays[dt];
+      
+      if(A.status=="present") { pRange++; dailyTotals[dt].present++; }
+      else if(A.status=="late") { dailyTotals[dt].late++; }
+      else if(A.status=="absent") { dailyTotals[dt].absent++; }
+      else if(A.status=="excused") { dailyTotals[dt].excused++; }
+      
+      let txt = isHoliday ? isHoliday : ((A.status === 'excused' || A.status === 'late' || A.status === 'absent') ? (A.reason || A.status[0].toUpperCase()) : (A.status ? A.status[0].toUpperCase() : ""));
+      let cellClass = isHoliday ? "holiday" : (A.status||"");
+      
+      html+=`<td class="${cellClass}" onmousedown="${isHoliday ? '' : `markCell('${k}')`}">${txt}</td>`;
+    });
+    html+=`<td>${pRange}</td><td>${pMonth}</td></tr>`;
+  });
+
+  html += `<tr class="totals-row"><td class="student totals-label">DAILY TOTALS</td>`;
+  c.dates.forEach(dt => {
+    let t = dailyTotals[dt];
+    html += `<td>P: ${t.present}<br>L: ${t.late}<br>A: ${t.absent}<br>E: ${t.excused}</td>`;
+  });
+  html += `<td colspan="2">-</td></tr>`;
+
+  table.innerHTML=html;
+}
+
+function markCell(k){
+  if(attendanceMode === "excused" || attendanceMode === "absent"){ openModal('excusedModal', k); return; }
+  if(attendanceMode === "late"){ openModal('lateModal', k); return; }
+  let d=DB(), c=d.users[currentUser].classes[currentClass];
+  if(attendanceMode) c.att[k]={status:attendanceMode}; else delete c.att[k];
+  SAVE(d); render();
+}
+
+function openLRNModal(s){
+  pendingStudent = s;
+  let d=DB(), c=d.users[currentUser].classes[currentClass];
+  if(!c.lrns) c.lrns = {};
+  lrnStudentLabel.innerText = "Student: " + s;
+  lrnInput.value = c.lrns[s] || "";
+  document.getElementById('lrnModal').style.display='block'; 
+  document.getElementById('overlay').style.display='block';
+}
+
+function submitLRN(){
+  let d=DB(), c=d.users[currentUser].classes[currentClass];
+  if(!c.lrns) c.lrns = {};
+  c.lrns[pendingStudent] = lrnInput.value;
+  SAVE(d); closeModals(); render();
+}
+
+function openModal(id, k){ 
+  pendingKey = k; 
+  document.getElementById(id).style.display='block'; 
+  document.getElementById('overlay').style.display='block'; 
+}
+
+function closeModals(){ 
+  document.getElementById('excusedModal').style.display='none'; 
+  document.getElementById('lateModal').style.display='none'; 
+  document.getElementById('lrnModal').style.display='none'; 
+  document.getElementById('overlay').style.display='none'; 
+}
+
+function toggleLateOther() {
+  const drop = document.getElementById('lateReasonDropdown');
+  const input = document.getElementById('lateReasonInput');
+  input.style.display = (drop.value === 'Others') ? 'block' : 'none';
+}
+
+function toggleExcusedOther() {
+  const drop = document.getElementById('excusedReasonDropdown');
+  const input = document.getElementById('excusedReasonInput');
+  input.style.display = (drop.value === 'Others') ? 'block' : 'none';
+}
+
+function submitExcused(){
+  let d=DB(), c=d.users[currentUser].classes[currentClass];
+  let reason = document.getElementById('excusedReasonDropdown').value;
+  if(reason === 'Others') reason = document.getElementById('excusedReasonInput').value || 'Others';
+  c.att[pendingKey] = {status: attendanceMode, reason:reason};
+  SAVE(d); closeModals(); render();
+}
+
+function submitLate(){
+  let d=DB(), c=d.users[currentUser].classes[currentClass];
+  let reason = document.getElementById('lateReasonDropdown').value;
+  if(reason === 'Others') reason = document.getElementById('lateReasonInput').value || 'Others';
+  c.att[pendingKey] = {status:'late', reason:reason};
+  SAVE(d); closeModals(); render();
+}
+
+function exportCSV(){
+  let d=DB(),c=d.users[currentUser].classes[currentClass];
+  let csv="Student,LRN,"+c.dates.join(",")+"\n";
+  c.students.forEach(s=>{ csv+=s+","+(c.lrns[s]||"")+","+c.dates.map(dt=>c.att[s+"|"+dt]?.status||"").join(",")+"\n"; });
+  let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv])); a.download=currentClass+".csv"; a.click();
+}
+
+function toggleDark(){ document.body.classList.toggle("dark"); localStorage.setItem("dark",document.body.classList.contains("dark")); }
+if(localStorage.getItem("dark")==="true")document.body.classList.add("dark");
+
+window.onload = () => {
+  let lastU = localStorage.getItem("lastUser");
+  let lastP = localStorage.getItem("lastPass");
+  if(lastU && lastP) login(lastU, lastP);
+}
+</script>
+
+</body>
+</html>
